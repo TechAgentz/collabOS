@@ -7,3 +7,7 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# n8n VPS backups contain N8N_ENCRYPTION_KEY — never commit one
+n8n/vps/backups/
+n8n/vps/*.tar.gz

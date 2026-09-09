@@ -1,0 +1,40 @@
+# Public edge for n8n. Caddy obtains and renews a Let's Encrypt certificate
+# for {$N8N_DOMAIN} automatically — there is no certbot step and no cron job.
+# Requirements: the A record must already point at this VPS, and ports 80 and
+# 443 must be open, before the first `docker compose up`.
+
+{
+	email {$ACME_EMAIL}
+	# Uncomment while testing DNS/firewall to avoid burning Let's Encrypt's
+	# rate limit (5 failures per account per hostname per hour). Certificates
+	# issued in staging are untrusted by browsers — comment it back out and
+	# run `docker compose restart caddy` once the real cert works.
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$N8N_DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy n8n:5678 {
+		# n8n streams editor push events (execution progress, node output) over
+		# a long-lived connection. -1 disables response buffering so those
+		# arrive immediately instead of in chunks. WebSocket upgrades are
+		# proxied by default and need no extra config.
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options    "nosniff"
+		X-Frame-Options           "SAMEORIGIN"
+		Referrer-Policy           "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/n8n-access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

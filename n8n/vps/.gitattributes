@@ -1,0 +1,5 @@
+# These are deployed to a Linux VPS. CRLF breaks shell shebangs and
+# Caddy/compose parsing, so force LF regardless of the checkout platform.
+*            text eol=lf
+*.sh         text eol=lf
+Caddyfile    text eol=lf
