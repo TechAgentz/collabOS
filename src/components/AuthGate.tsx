@@ -10,7 +10,7 @@ import type { ChannelAccounts } from "./SettingsModal";
 
 /**
  * Gates the whole dashboard behind a Supabase session.
- *   loading  -> spinner
+ *   loading  -> centered brass spinner
  *   no user  -> <LoginForm/>
  *   signed in -> <DealsProvider> + <DashboardShell/>
  */
@@ -66,7 +66,13 @@ export default function AuthGate() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-sky-400" />
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2"
+          style={{
+            borderColor: "color-mix(in oklab, white 10%, transparent)",
+            borderTopColor: "oklch(0.83 0.13 78)",
+          }}
+        />
       </div>
     );
   }

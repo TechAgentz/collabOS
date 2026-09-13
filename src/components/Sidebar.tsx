@@ -8,25 +8,29 @@ import SettingsModal, { type ChannelAccounts } from "./SettingsModal";
 
 const CHANNELS: Channel[] = ["gmail", "instagram", "whatsapp"];
 
-function currency(n: number): string {
+/**
+ * Currency compaction with graceful fallback.
+ * Mixed-currency pipelines: sum in "primary" bucket only (largest by value)
+ * would be more honest, but the sidebar deliberately shows one aggregate
+ * number so it never lies about "USD 482,500" when half the deals are INR.
+ * The hero handles the honest per-currency version — this one is a rough
+ * cross-currency sum for hierarchy only.
+ */
+function compactValue(n: number): string {
   try {
     return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      notation: n >= 100000 ? "compact" : "standard",
-      maximumFractionDigits: n >= 100000 ? 1 : 0,
+      notation: n >= 100_000 ? "compact" : "standard",
+      maximumFractionDigits: n >= 100_000 ? 1 : 0,
     }).format(n);
   } catch {
-    return `$${n}`;
+    return `${n}`;
   }
 }
 
 function displayName(email?: string): string {
   if (!email) return "Your workspace";
   const local = email.split("@")[0];
-  return local
-    .replace(/[._-]+/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return local.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function Sidebar({
@@ -50,133 +54,241 @@ export default function Sidebar({
     c === "all" ? deals.length : deals.filter((d) => d.source_channel === c).length;
 
   return (
-    <aside className="glass flex flex-col gap-5 rounded-3xl p-5 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto scroll-slim">
+    <aside className="glass flex flex-col gap-6 p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
       {/* Brand */}
-      <div className="px-1 pt-1">
-        <h1 className="font-display text-2xl text-white">CollabOS</h1>
-        <div className="mt-1 h-px w-16 bg-gradient-to-r from-white/40 to-transparent" />
+      <div className="flex items-center gap-2.5 px-1 pt-1">
+        <BrandMark />
+        <span className="font-display text-xl leading-none text-white">CollabOS</span>
       </div>
 
-      {/* Profile */}
-      <div className="glass-soft flex items-center gap-3 rounded-2xl p-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/40 to-fuchsia-500/30 text-sm font-semibold text-white ring-1 ring-white/15">
+      {/* Profile chip */}
+      <div className="surface-inset flex items-center gap-3 px-3 py-2.5">
+        <div
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-[#1a1000]"
+          style={{
+            background:
+              "linear-gradient(180deg, oklch(0.85 0.13 78), oklch(0.68 0.15 62))",
+            boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.35)",
+          }}
+        >
           {(email?.[0] ?? "?").toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-white">{displayName(email)}</p>
-          <p className="truncate text-[11px] text-slate-400">{email ?? "Signed in"}</p>
+          <p className="truncate text-[11px] text-[color:var(--color-ink-4)]">
+            {email ?? "Signed in"}
+          </p>
         </div>
       </div>
 
-      {/* Pipeline value */}
-      <div className="glass-soft rounded-2xl p-4">
-        <p className="text-[10px] uppercase tracking-wider text-slate-400">Pipeline value</p>
-        <p className="font-display mt-1 text-4xl leading-none text-white">{currency(totalValue)}</p>
-        <div className="mt-3 flex items-center gap-4 text-xs text-slate-400">
+      {/* Pipeline number — the "big display moment" */}
+      <div className="px-1">
+        <p className="text-[10px] tracking-caps text-[color:var(--color-ink-4)]">
+          Pipeline value
+        </p>
+        <p className="font-display mt-1 text-4xl leading-none text-white">
+          {compactValue(totalValue)}
+        </p>
+        <div className="mt-3 flex items-center gap-4 text-[11px] tracking-caps text-[color:var(--color-ink-3)]">
           <span>
-            <span className="text-slate-100">{active}</span> active
+            <span className="text-white">{active}</span> active
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-            <span className="text-slate-100">{unread}</span> unread
+            <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.83_0.13_78)]" />
+            <span className="text-white">{unread}</span> unread
           </span>
         </div>
       </div>
+
+      <div className="hairline" />
 
       {/* Stage distribution */}
       <div>
-        <p className="mb-2.5 px-1 text-[10px] uppercase tracking-wider text-slate-500">Stages</p>
-        <div className="space-y-2.5">
+        <p className="mb-3 px-1 text-[10px] tracking-caps text-[color:var(--color-ink-4)]">Stages</p>
+        <div className="space-y-3">
           {STAGES.map((stage) => {
             const count = deals.filter((d) => d.stage === stage.id).length;
             return (
-              <div key={stage.id} className="flex items-center gap-2.5">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${stage.accent}`} />
-                <span className="w-24 shrink-0 truncate text-xs text-slate-300">{stage.label}</span>
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+              <div key={stage.id} className="flex items-center gap-3">
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${stage.accent}`} />
+                <span className="w-20 shrink-0 truncate text-xs text-[color:var(--color-ink-2)]">
+                  {stage.label}
+                </span>
+                <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/5">
                   <div
-                    className={`h-full rounded-full ${stage.accent} opacity-80`}
-                    style={{ width: `${(count / maxStage) * 100}%` }}
+                    className={`h-full rounded-full ${stage.accent}`}
+                    style={{ width: `${(count / maxStage) * 100}%`, opacity: 0.8 }}
                   />
                 </div>
-                <span className="w-4 shrink-0 text-right text-xs tabular-nums text-slate-400">{count}</span>
+                <span className="w-4 shrink-0 text-right text-xs tabular-nums text-[color:var(--color-ink-3)]">
+                  {count}
+                </span>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Connected accounts (also filters the board) */}
+      <div className="hairline" />
+
+      {/* Connected accounts / channel filter */}
       <div>
-        <div className="mb-2.5 flex items-center justify-between px-1">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500">Connected accounts</p>
+        <div className="mb-3 flex items-center justify-between px-1">
+          <p className="text-[10px] tracking-caps text-[color:var(--color-ink-4)]">
+            Connected accounts
+          </p>
           <button
             onClick={() => setShowSettings(true)}
             aria-label="Edit connected accounts"
-            className="text-slate-500 transition-colors hover:text-slate-200"
+            className="text-[color:var(--color-ink-4)] transition-colors hover:text-white"
           >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" strokeWidth="1.2" />
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
             </svg>
           </button>
         </div>
+
         <div className="space-y-1">
-          <button
+          <ChannelRow
+            active={channelFilter === "all"}
             onClick={() => setChannelFilter("all")}
-            className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors ${
-              channelFilter === "all" ? "bg-white/10 text-white ring-1 ring-white/15" : "text-slate-300 hover:bg-white/5"
-            }`}
-          >
-            <span className="grid h-3.5 w-3.5 place-items-center text-slate-400">◎</span>
-            <span className="flex-1 text-left">All channels</span>
-            <span className="text-xs tabular-nums text-slate-500">{channelCount("all")}</span>
-          </button>
+            label="All channels"
+            count={channelCount("all")}
+            icon={
+              <span className="grid h-4 w-4 place-items-center text-[color:var(--color-ink-3)]">
+                ◎
+              </span>
+            }
+          />
 
           {CHANNELS.map((c) => {
             const count = channelCount(c);
             const connected = count > 0;
             const isActive = channelFilter === c;
-            // The connected account. Gmail's is the user's login email (the inbox
-            // n8n polls); the Instagram handle / WhatsApp number aren't captured
-            // in the app yet (they live in the n8n credentials).
-            const account = accounts[c] || (connected ? (c === "gmail" ? email : "Linked via n8n") : null);
+            const account =
+              accounts[c] ||
+              (connected ? (c === "gmail" ? email : "Linked via n8n") : null);
             return (
-              <button
+              <ChannelRow
                 key={c}
+                active={isActive}
                 onClick={() => setChannelFilter(c)}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${
-                  isActive ? "bg-white/10 ring-1 ring-white/15" : "hover:bg-white/5"
-                }`}
-              >
-                <ChannelIcon channel={c} className="mt-0.5 h-4 w-4 shrink-0 text-slate-300" />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm text-slate-200">
-                    {CHANNEL_LABELS[c]}
-                    <span className={`text-[10px] ${connected ? "text-emerald-400" : "text-slate-600"}`}>
-                      {connected ? "● active" : "○ not linked"}
-                    </span>
-                  </span>
-                  {account && <span className="mt-0.5 block truncate text-[11px] text-slate-500">{account}</span>}
-                </span>
-                <span className="self-center text-xs tabular-nums text-slate-500">{count}</span>
-              </button>
+                label={CHANNEL_LABELS[c]}
+                count={count}
+                sub={account ?? undefined}
+                status={connected ? "active" : "off"}
+                icon={<ChannelIcon channel={c} className="h-4 w-4 text-[color:var(--color-ink-2)]" />}
+              />
             );
           })}
         </div>
       </div>
 
-      {/* Sign out */}
-      <div className="mt-auto border-t border-white/10 pt-4">
+      {/* Sign out — pinned bottom */}
+      <div className="mt-auto">
+        <div className="hairline mb-4" />
         <button
           onClick={onSignOut}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 transition-colors hover:border-white/20 hover:text-white"
+          className="btn w-full text-xs"
+          data-variant="ghost"
         >
           Sign out
         </button>
       </div>
 
-      {showSettings && <SettingsModal accounts={accounts} onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsModal accounts={accounts} onClose={() => setShowSettings(false)} />
+      )}
     </aside>
+  );
+}
+
+/* ------- helpers ------- */
+
+function ChannelRow({
+  active,
+  onClick,
+  label,
+  count,
+  sub,
+  status,
+  icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  sub?: string;
+  status?: "active" | "off";
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-start gap-3 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition-colors ${
+        active
+          ? "bg-[color-mix(in_oklab,white_8%,transparent)] ring-1 ring-[color:var(--color-line-2)]"
+          : "hover:bg-[color-mix(in_oklab,white_4%,transparent)]"
+      }`}
+    >
+      <span className="mt-0.5">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 text-sm text-white">
+          {label}
+          {status && (
+            <span
+              className="text-[9px] tracking-caps"
+              style={{
+                color:
+                  status === "active"
+                    ? "oklch(0.78 0.135 155)"
+                    : "oklch(0.44 0.02 260)",
+              }}
+            >
+              {status === "active" ? "● active" : "○ not linked"}
+            </span>
+          )}
+        </span>
+        {sub && (
+          <span className="mt-0.5 block truncate text-[11px] text-[color:var(--color-ink-4)]">
+            {sub}
+          </span>
+        )}
+      </span>
+      <span className="self-center text-xs tabular-nums text-[color:var(--color-ink-3)]">
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function BrandMark() {
+  return (
+    <span
+      aria-hidden
+      className="grid h-8 w-8 place-items-center rounded-md"
+      style={{
+        background:
+          "linear-gradient(180deg, oklch(0.85 0.13 78), oklch(0.68 0.15 62))",
+        boxShadow:
+          "inset 0 1px 0 rgb(255 255 255 / 0.35), 0 4px 12px -4px oklch(0.68 0.15 62 / 0.5)",
+      }}
+    >
+      <span
+        className="font-display italic leading-none"
+        style={{ color: "#1a1000", fontSize: "18px" }}
+      >
+        C
+      </span>
+    </span>
   );
 }

@@ -1,8 +1,67 @@
 @import "tailwindcss";
 
-/* ---------- Base ---------- */
+/* ============================================================
+   CollabOS design tokens — dark editorial, warm-brass accent.
+   Tailwind v4 CSS-first: everything in @theme becomes utilities
+   (bg-brand, text-ink, border-line, etc.) and CSS variables.
+   ============================================================ */
+@theme {
+  /* Palette — OKLCH so hue stays true across lightness ramps. */
+  --color-canvas:     oklch(0.14 0.020 262);
+  --color-ink:        oklch(0.98 0.005 260);
+  --color-ink-2:      oklch(0.83 0.010 260);
+  --color-ink-3:      oklch(0.62 0.020 260);
+  --color-ink-4:      oklch(0.44 0.025 260);
+  --color-line:       oklch(1 0 0 / 0.09);
+  --color-line-2:     oklch(1 0 0 / 0.16);
+  --color-surface:    oklch(0.19 0.020 262);
+  --color-surface-2:  oklch(0.22 0.022 262);
+  --color-surface-3:  oklch(0.27 0.024 262);
+
+  /* Brand + accents. Brass ties into the serif brand mark. */
+  --color-brass:      oklch(0.83 0.130 78);
+  --color-brass-2:    oklch(0.70 0.145 62);
+  --color-sky:        oklch(0.76 0.130 235);
+  --color-mint:       oklch(0.78 0.135 155);
+  --color-coral:      oklch(0.72 0.180 25);
+  --color-plum:       oklch(0.72 0.130 300);
+
+  /* Stage accents (kept semantic; used across board + sidebar bars) */
+  --color-stage-new:        oklch(0.76 0.130 235);
+  --color-stage-negotiate:  oklch(0.80 0.140 78);
+  --color-stage-drafting:   oklch(0.72 0.130 300);
+  --color-stage-completed:  oklch(0.78 0.135 155);
+
+  /* Priority (hi/med/lo) */
+  --color-pri-hi:  oklch(0.72 0.180 25);
+  --color-pri-md:  oklch(0.80 0.140 78);
+  --color-pri-lo:  oklch(0.65 0.020 260);
+
+  /* Radii + shadow ramp */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-1: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-2: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 8px 24px -12px rgb(0 0 0 / 0.55);
+  --shadow-3: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 24px 60px -20px rgb(0 0 0 / 0.7);
+
+  /* Font families wired to the next/font vars in layout.tsx */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, "Times New Roman", serif;
+
+  /* Motion */
+  --ease-emphatic: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------- Root + body ---------- */
 :root {
   color-scheme: dark;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
 }
 
 html,
@@ -11,114 +70,243 @@ body {
 }
 
 body {
-  color: #e7ecf3;
-  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  /* Cinematic dark sky: deep slate with a warm sunset glow bleeding through. */
-  background-color: #070b16;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  background-color: #06090f;
+  /* One warm bloom + one cool depth radial, over a graded slate. */
   background-image:
-    radial-gradient(1100px 620px at 72% 12%, rgba(251, 191, 36, 0.10), transparent 60%),
-    radial-gradient(1000px 700px at 82% 58%, rgba(214, 120, 66, 0.13), transparent 55%),
-    radial-gradient(900px 900px at 12% 90%, rgba(56, 90, 150, 0.16), transparent 60%),
-    linear-gradient(155deg, #0a1120 0%, #0a0f1d 45%, #080c16 100%);
+    radial-gradient(1200px 700px at 78% 8%, oklch(0.60 0.18 60 / 0.16), transparent 62%),
+    radial-gradient(1000px 900px at 10% 96%, oklch(0.55 0.10 260 / 0.18), transparent 60%),
+    linear-gradient(160deg, #0a1122 0%, #080d1a 55%, #05070d 100%);
   background-attachment: fixed;
   background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
 }
 
-/* ---------- Display serif (big numbers / brand) ---------- */
+/* ---------- Typography helpers ---------- */
 .font-display {
-  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif);
   font-weight: 400;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.005em;
+  font-feature-settings: "liga", "dlig";
+}
+.text-display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+}
+.tracking-caps {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-/* ---------- Glass surfaces ---------- */
+/* ---------- Surfaces ---------- */
+/* One primary surface. Restraint over stacked glass. */
+.surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}
+.surface-inset {
+  background: color-mix(in oklab, var(--color-canvas) 60%, black);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+.surface-quiet {
+  background: color-mix(in oklab, var(--color-surface) 65%, transparent);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+}
+
+/* Glass — kept for one deliberate use (nav shell + panel) */
 .glass {
-  background: rgba(255, 255, 255, 0.045);
-  backdrop-filter: blur(18px) saturate(130%);
-  -webkit-backdrop-filter: blur(18px) saturate(130%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow:
-    0 10px 34px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  background: color-mix(in oklab, white 3%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
 }
-
 .glass-soft {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in oklab, white 2%, transparent);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
 }
-
-/* Opaque (non-transparent) surface — used for the conversation panel. */
 .panel-solid {
-  background: #0e1626;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: -18px 0 50px rgba(0, 0, 0, 0.55);
+  background: color-mix(in oklab, var(--color-canvas) 70%, black);
+  border-left: 1px solid var(--color-line);
+  box-shadow: -18px 0 60px rgb(0 0 0 / 0.6);
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+/* Card — the ONE draggable card style. `.glass-card` kept as alias
+   so untouched components (Analytics) keep their look during the phased
+   redesign; both classes render the same card. */
+.glass-card,
+.card {
+  background: color-mix(in oklab, white 3.5%, transparent);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
   transition:
-    transform 200ms ease,
-    border-color 200ms ease,
-    background 200ms ease,
-    box-shadow 200ms ease;
+    transform 180ms var(--ease-emphatic),
+    border-color 180ms var(--ease-standard),
+    background 180ms var(--ease-standard),
+    box-shadow 220ms var(--ease-standard);
 }
-.glass-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+.glass-card:hover,
+.card:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-line-2);
+  background: color-mix(in oklab, white 5.5%, transparent);
+  box-shadow: var(--shadow-3);
 }
-
-/* ---------- Thin custom scrollbars inside glass panels ---------- */
-/* Hide scrollbars everywhere — content stays scrollable, just no visible bar. */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* old Edge/IE */
-}
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none; /* Chrome / Safari / Edge */
+.card:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklab, var(--color-brass) 60%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--color-brass) 22%, transparent),
+    var(--shadow-3);
 }
 
-/* ---------- Slide-in conversation panel ---------- */
+/* Stage strip — thin left edge on kanban columns/cards */
+.stage-strip {
+  position: relative;
+  overflow: hidden;
+}
+.stage-strip::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+/* Chip / pill */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  border: 1px solid var(--color-line);
+  background: color-mix(in oklab, white 4%, transparent);
+  color: var(--color-ink-2);
+}
+.chip[data-tone="hi"]  { color: var(--color-pri-hi); border-color: color-mix(in oklab, var(--color-pri-hi) 40%, transparent); background: color-mix(in oklab, var(--color-pri-hi) 12%, transparent); }
+.chip[data-tone="md"]  { color: var(--color-pri-md); border-color: color-mix(in oklab, var(--color-pri-md) 40%, transparent); background: color-mix(in oklab, var(--color-pri-md) 12%, transparent); }
+.chip[data-tone="lo"]  { color: var(--color-pri-lo); border-color: color-mix(in oklab, var(--color-pri-lo) 40%, transparent); background: color-mix(in oklab, var(--color-pri-lo) 10%, transparent); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid var(--color-line);
+  background: color-mix(in oklab, white 5%, transparent);
+  color: var(--color-ink);
+  transition: background 160ms, border-color 160ms, transform 160ms var(--ease-emphatic);
+}
+.btn:hover { background: color-mix(in oklab, white 8%, transparent); border-color: var(--color-line-2); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brass) 25%, transparent); }
+.btn[data-variant="primary"] {
+  background: linear-gradient(180deg, var(--color-brass), var(--color-brass-2));
+  color: #1a1000;
+  border-color: color-mix(in oklab, var(--color-brass) 60%, black);
+  box-shadow: 0 8px 24px -10px oklch(0.70 0.15 62 / 0.6);
+}
+.btn[data-variant="primary"]:hover {
+  background: linear-gradient(180deg, oklch(0.87 0.13 78), var(--color-brass));
+}
+.btn[data-variant="ghost"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-ink-2);
+}
+.btn[data-variant="ghost"]:hover { background: color-mix(in oklab, white 4%, transparent); color: var(--color-ink); }
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, black 20%, transparent);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 150ms, background 150ms, box-shadow 150ms;
+}
+.input::placeholder { color: var(--color-ink-4); }
+.input:hover { border-color: var(--color-line-2); }
+.input:focus {
+  border-color: color-mix(in oklab, var(--color-brass) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brass) 18%, transparent);
+  background: color-mix(in oklab, black 10%, transparent);
+}
+
+/* Hairlines */
+.hairline { background: linear-gradient(90deg, transparent, var(--color-line-2), transparent); height: 1px; width: 100%; }
+.hairline-v { background: linear-gradient(180deg, transparent, var(--color-line-2), transparent); width: 1px; height: 100%; }
+
+/* Scrollbars invisible but functional */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* Motion */
 @keyframes panel-in {
-  from {
-    transform: translateX(24px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(28px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
-.animate-panel-in {
-  animation: panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
+.animate-panel-in { animation: panel-in 260ms var(--ease-emphatic); }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in {
-  animation: fade-in 200ms ease;
+.animate-fade-in { animation: fade-in 220ms var(--ease-emphatic); }
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, white 3%, transparent) 0%,
+    color-mix(in oklab, white 8%, transparent) 50%,
+    color-mix(in oklab, white 3%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .glass-card,
+  .card,
   .animate-panel-in,
-  .animate-fade-in {
-    transition: none;
-    animation: none;
-  }
+  .animate-fade-in,
+  .shimmer { transition: none; animation: none; }
+}
+
+/* Selection */
+::selection {
+  background: color-mix(in oklab, var(--color-brass) 45%, transparent);
+  color: #1a1000;
 }
