@@ -5,7 +5,7 @@ import type { Channel } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
-// OpenAI extraction can take a few seconds; don't let a slow call hit the
+// AI extraction can take a few seconds; don't let a slow call hit the
 // default serverless timeout. (Hobby plan caps maxDuration at 60s.)
 export const maxDuration = 60;
 
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
 
   // 3. Idempotency short-circuit: if this exact provider message was already
-  // ingested, do nothing — no second OpenAI call, no re-flipping is_read.
+  // ingested, do nothing — no second AI call, no re-flipping is_read.
   // (This is what makes an n8n retry safe.)
   if (payload.external_message_id) {
     const { data: dupe, error: dupeError } = await supabase
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     if (lookupError) {
       // A genuine read failure is NOT "no such thread" — bail out before the
-      // OpenAI call with a retryable status instead of silently creating a
+      // AI call with a retryable status instead of silently creating a
       // duplicate / dropping the message.
       console.error("Thread lookup failed:", lookupError);
       return NextResponse.json({ error: "Thread lookup failed" }, { status: 503 });
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
   try {
     extracted = await extractDealFromMessage(raw_text, channel, payload.sender);
   } catch (err) {
-    console.error("OpenAI extraction failed:", err);
+    console.error("AI extraction failed:", err);
     return NextResponse.json({ error: "AI extraction failed" }, { status: 502 });
   }
 

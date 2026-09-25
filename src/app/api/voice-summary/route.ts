@@ -12,7 +12,7 @@ export const maxDuration = 60;
  * Headers:  Authorization: Bearer <supabase access token>
  * Body:     { "query"?: string, "markAsRead"?: boolean }   (both optional)
  *
- * Fetches the user's unread deals and asks OpenAI for a short,
+ * Fetches the user's unread deals and asks the LLM (Groq) for a short,
  * talent-manager-style spoken briefing. The client plays it via TTS.
  */
 export async function POST(req: NextRequest) {
@@ -90,12 +90,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 3. OpenAI greets/answers, or produces the daily briefing.
+  // 3. The LLM greets/answers, or produces the daily briefing.
   let briefing: string;
   try {
     briefing = await generateVoiceBriefing(contextDeals, question, recentActivity, name?.trim() || undefined);
   } catch (err) {
-    console.error("OpenAI briefing failed:", err);
+    console.error("AI briefing failed:", err);
     return NextResponse.json({ error: "Failed to generate briefing" }, { status: 502 });
   }
 

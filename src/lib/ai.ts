@@ -1,14 +1,24 @@
 import OpenAI from "openai";
 import type { Deal, DealPriority } from "@/lib/types";
 
-// gpt-4o-mini: cheap + reliable structured-output extraction. Swap this one
-// constant for "gpt-5-mini" / "gpt-5-nano" (cheaper) if you want a newer model.
-const MODEL = "gpt-4o-mini";
+// LLM provider: Groq, serving open-weight models through an OpenAI-compatible
+// API — so the `openai` npm package (MIT) is only used as the HTTP client.
+//
+// Override without code changes:
+//   AI_MODEL     e.g. "openai/gpt-oss-120b" (Apache-2.0 weights) on Groq
+//   AI_BASE_URL  e.g. "http://localhost:11434/v1" to run fully local on Ollama
+//                (Ollama ignores the key, but GROQ_API_KEY must be non-empty)
+const BASE_URL = process.env.AI_BASE_URL || "https://api.groq.com/openai/v1";
+const MODEL = process.env.AI_MODEL || "llama-3.3-70b-versatile";
 
 let client: OpenAI | null = null;
-function getOpenAI(): OpenAI {
+function getClient(): OpenAI {
   if (!client) {
-    client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+    const apiKey = process.env.GROQ_API_KEY;
+    // Throwing here surfaces as a 502 from the calling route, which is the
+    // right signal: misconfiguration, not bad input.
+    if (!apiKey) throw new Error("GROQ_API_KEY is not set");
+    client = new OpenAI({ apiKey, baseURL: BASE_URL });
   }
   return client;
 }
@@ -29,54 +39,83 @@ export interface ExtractedDeal {
   summary: string;
 }
 
+// JSON mode (json_object) rather than json_schema: it works on every Groq
+// model and on Ollama, whereas schema-constrained decoding is limited to a few
+// models. The trade-off is that the shape is only requested, not enforced, so
+// the prompt spells it out and normaliseDeal() below validates every field.
 const EXTRACTION_SYSTEM_PROMPT = `You are the intake engine for CollabOS, a CRM for social media influencers.
 You receive one raw inbound message (email, Instagram DM, or WhatsApp message).
 Decide whether it is brand-collaboration related and extract structured fields.
 
+Respond with a single JSON object with exactly these keys and nothing else:
+{
+  "is_deal": boolean,
+  "brand_name": string or null,
+  "contact_name": string or null,
+  "budget": number or null,
+  "currency": string or null,
+  "deliverables": array of strings,
+  "deadline": string or null,
+  "priority": "low" | "medium" | "high",
+  "summary": string
+}
+
 Rules:
 - "is_deal": false for spam, fan mail, newsletters, or anything unrelated to brand deals.
 - "brand_name": the company or brand pitching. null if not identifiable.
-- "budget": total offered amount as a plain number, no symbols. null if not stated.
-- "currency": ISO 4217 code (e.g. "USD") when stated or clearly implied, else null.
+- "budget": total offered amount as a plain number, no symbols or commas. null if not stated.
+- "currency": ISO 4217 code (e.g. "USD", "INR") when stated or clearly implied, else null.
 - "deliverables": short strings, e.g. ["1x Instagram Reel", "3x Stories"]. Empty list if none stated.
 - "deadline": content/delivery deadline as YYYY-MM-DD, resolving relative dates against today's date (provided). null if not stated.
 - "priority": "high" for large budgets, tight deadlines, or well-known brands; "medium" for typical pitches; "low" for vague or mass outreach.
 - "summary": 1-2 sentences a talent manager would write in a CRM.
 Extract only what is in the message. Never invent values.`;
 
-// strict:true guarantees the model returns JSON that validates this schema
-// exactly. Every field is required (nullable ones use a null union) so the
-// result always has the full shape the DB expects.
-const DEAL_SCHEMA = {
-  name: "extracted_deal",
-  strict: true,
-  schema: {
-    type: "object",
-    properties: {
-      is_deal: { type: "boolean" },
-      brand_name: { type: ["string", "null"] },
-      contact_name: { type: ["string", "null"] },
-      budget: { type: ["number", "null"] },
-      currency: { type: ["string", "null"] },
-      deliverables: { type: "array", items: { type: "string" } },
-      deadline: { type: ["string", "null"] },
-      priority: { type: "string", enum: ["low", "medium", "high"] },
-      summary: { type: "string" },
-    },
-    required: [
-      "is_deal",
-      "brand_name",
-      "contact_name",
-      "budget",
-      "currency",
-      "deliverables",
-      "deadline",
-      "priority",
-      "summary",
-    ],
-    additionalProperties: false,
-  },
-} as const;
+const PRIORITIES: readonly DealPriority[] = ["low", "medium", "high"];
+
+function nullableString(v: unknown): string | null {
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+/** Coerces a loosely-shaped model response into ExtractedDeal, or throws. */
+function normaliseDeal(raw: unknown, text: string): ExtractedDeal {
+  const d = (raw ?? {}) as Record<string, unknown>;
+
+  const priority = String(d.priority ?? "").toLowerCase() as DealPriority;
+  if (typeof d.is_deal !== "boolean" || typeof d.summary !== "string" || !PRIORITIES.includes(priority)) {
+    throw new Error(`AI output missing required fields: ${text.slice(0, 200)}`);
+  }
+
+  // Models sometimes return "45,000" or "$3,500" despite the prompt.
+  let budget: number | null = null;
+  if (typeof d.budget === "number" && Number.isFinite(d.budget)) {
+    budget = d.budget;
+  } else if (typeof d.budget === "string") {
+    // Require a digit so "not stated" doesn't become Number("") === 0.
+    const digits = d.budget.replace(/[^0-9.]/g, "");
+    const n = Number(digits);
+    budget = /\d/.test(digits) && Number.isFinite(n) ? n : null;
+  }
+
+  const currency = nullableString(d.currency)?.toUpperCase() ?? null;
+  const deadline =
+    typeof d.deadline === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.deadline) ? d.deadline : null;
+  const deliverables = Array.isArray(d.deliverables)
+    ? d.deliverables.filter((x): x is string => typeof x === "string" && x.trim() !== "")
+    : [];
+
+  return {
+    is_deal: d.is_deal,
+    brand_name: nullableString(d.brand_name),
+    contact_name: nullableString(d.contact_name),
+    budget,
+    currency: currency && /^[A-Z]{3}$/.test(currency) ? currency : null,
+    deliverables,
+    deadline,
+    priority,
+    summary: d.summary.trim(),
+  };
+}
 
 export async function extractDealFromMessage(
   rawText: string,
@@ -85,11 +124,11 @@ export async function extractDealFromMessage(
 ): Promise<ExtractedDeal> {
   const today = new Date().toISOString().slice(0, 10);
 
-  const completion = await getOpenAI().chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     temperature: 0,
     max_completion_tokens: 1024,
-    response_format: { type: "json_schema", json_schema: DEAL_SCHEMA },
+    response_format: { type: "json_object" },
     messages: [
       { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
       {
@@ -100,40 +139,19 @@ export async function extractDealFromMessage(
   });
 
   const choice = completion.choices[0];
-  // The model can decline via a `refusal` field instead of returning content —
-  // throw so the ingest route returns 502 (retryable) rather than recording junk.
-  if (choice?.message?.refusal) {
-    throw new Error(`OpenAI refused extraction: ${choice.message.refusal}`);
-  }
   const text = choice?.message?.content?.trim();
   if (!text) {
-    throw new Error(`OpenAI returned no extraction text (finish_reason=${choice?.finish_reason ?? "none"})`);
+    throw new Error(`AI returned no extraction text (finish_reason=${choice?.finish_reason ?? "none"})`);
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error(`OpenAI returned non-JSON output: ${text.slice(0, 200)}`);
+    throw new Error(`AI returned non-JSON output: ${text.slice(0, 200)}`);
   }
 
-  // strict mode validates the schema, but the cast erases types — verify the
-  // load-bearing fields before trusting them downstream.
-  const d = parsed as Partial<ExtractedDeal>;
-  if (typeof d.is_deal !== "boolean" || typeof d.summary !== "string" || !d.priority) {
-    throw new Error(`OpenAI output missing required fields: ${text.slice(0, 200)}`);
-  }
-  return {
-    is_deal: d.is_deal,
-    brand_name: d.brand_name ?? null,
-    contact_name: d.contact_name ?? null,
-    budget: d.budget ?? null,
-    currency: d.currency ?? null,
-    deliverables: d.deliverables ?? [],
-    deadline: d.deadline ?? null,
-    priority: d.priority,
-    summary: d.summary,
-  };
+  return normaliseDeal(parsed, text);
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +198,7 @@ export async function generateVoiceBriefing(
     ? `\n\nRecent activity (newest first):\n${JSON.stringify(recentActivity, null, 2)}`
     : "";
 
-  const completion = await getOpenAI().chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     temperature: 0.6,
     max_completion_tokens: 400,
@@ -197,7 +215,7 @@ export async function generateVoiceBriefing(
 
   const text = completion.choices[0]?.message?.content?.trim();
   if (!text) {
-    throw new Error(`OpenAI returned no briefing text (finish_reason=${completion.choices[0]?.finish_reason ?? "none"})`);
+    throw new Error(`AI returned no briefing text (finish_reason=${completion.choices[0]?.finish_reason ?? "none"})`);
   }
   return text;
 }
