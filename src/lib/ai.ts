@@ -4,12 +4,22 @@ import type { Deal, DealPriority } from "@/lib/types";
 // LLM provider: Groq, serving open-weight models through an OpenAI-compatible
 // API — so the `openai` npm package (MIT) is only used as the HTTP client.
 //
+// Default model: gpt-oss-120b (Apache-2.0 weights). Groq shut down
+// llama-3.3-70b-versatile for free and developer tiers on 2026-08-16 and names
+// gpt-oss-120b as its replacement.
+//
 // Override without code changes:
-//   AI_MODEL     e.g. "openai/gpt-oss-120b" (Apache-2.0 weights) on Groq
+//   AI_MODEL     another Groq model id
 //   AI_BASE_URL  e.g. "http://localhost:11434/v1" to run fully local on Ollama
 //                (Ollama ignores the key, but GROQ_API_KEY must be non-empty)
 const BASE_URL = process.env.AI_BASE_URL || "https://api.groq.com/openai/v1";
-const MODEL = process.env.AI_MODEL || "llama-3.3-70b-versatile";
+const MODEL = process.env.AI_MODEL || "openai/gpt-oss-120b";
+
+// gpt-oss is a reasoning model: its hidden reasoning tokens count against
+// max_completion_tokens. Low effort keeps latency and token use down, and the
+// caps below leave room for reasoning before the visible answer. Only sent to
+// reasoning models; other models may reject the parameter.
+const REASONING_PARAMS = /gpt-oss/i.test(MODEL) ? ({ reasoning_effort: "low" } as const) : {};
 
 let client: OpenAI | null = null;
 function getClient(): OpenAI {
@@ -127,7 +137,8 @@ export async function extractDealFromMessage(
   const completion = await getClient().chat.completions.create({
     model: MODEL,
     temperature: 0,
-    max_completion_tokens: 1024,
+    max_completion_tokens: 2048,
+    ...REASONING_PARAMS,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
@@ -201,7 +212,8 @@ export async function generateVoiceBriefing(
   const completion = await getClient().chat.completions.create({
     model: MODEL,
     temperature: 0.6,
-    max_completion_tokens: 400,
+    max_completion_tokens: 1200,
+    ...REASONING_PARAMS,
     messages: [
       { role: "system", content: BRIEFING_SYSTEM_PROMPT },
       {

@@ -6,7 +6,7 @@ AI-powered CRM and unified dashboard for social media influencers. Brand pitches
 
 ```
 Gmail ─┐
-IG DM ─┼─▶ n8n ─▶ POST /api/ingest ─▶ Groq (Llama 3.3) ─▶ Supabase (deals + messages)
+IG DM ─┼─▶ n8n ─▶ POST /api/ingest ─▶ Groq (gpt-oss-120b) ─▶ Supabase (deals + messages)
 WA    ─┘        (x-webhook-secret)    (JSON extraction)         │
                                                                 ▼ realtime
                                               Next.js dashboard / Flutter app
@@ -16,7 +16,7 @@ WA    ─┘        (x-webhook-secret)    (JSON extraction)         │
 ```
 
 - **Ingestion** — n8n listens on each channel and forwards raw messages to `/api/ingest` with a shared-secret header.
-- **AI extraction** — Llama 3.3 70B on Groq (JSON mode, validated server-side) pulls out brand, budget, deliverables, deadline, priority, and a CRM summary. Non-deal messages (spam, fan mail) are skipped.
+- **AI extraction** — gpt-oss-120b on Groq, Apache-2.0 weights (JSON mode, validated server-side) pulls out brand, budget, deliverables, deadline, priority, and a CRM summary. Non-deal messages (spam, fan mail) are skipped.
 - **Threading** — messages carrying a known `external_thread_id` attach to their existing deal (and mark it unread) instead of creating a duplicate.
 - **Real-time UI** — the Kanban board subscribes to Supabase `postgres_changes`; new deals appear instantly, drag-and-drop stage moves are optimistic with rollback.
 - **Voice briefing** — the mic button captures speech (Web Speech API), `/api/voice-summary` feeds unread deals to the LLM for a talent-manager-style script, and the browser reads it back via `speechSynthesis`.
