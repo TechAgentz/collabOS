@@ -2,11 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { BotMark } from "./BotBackdrop";
 
 /**
- * Full-viewport split-screen sign in.
- *   Left  — brand editorial (only shown on lg+); big serif wordmark + quote.
- *   Right — the form.
+ * Sign-in: a single frosted-glass card over the robot backdrop, with a
+ * short pitch beside it on wide screens.
  *
  * On success, Supabase persists the session and AuthGate's
  * onAuthStateChange listener swaps this view for the dashboard, so there
@@ -52,61 +52,54 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[1.15fr_1fr]">
-      {/* Editorial pane */}
-      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
-        {/* Ambient warmth localized to this pane */}
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10"
-          style={{
-            backgroundImage:
-              "radial-gradient(700px 500px at 20% 20%, oklch(0.65 0.16 60 / 0.20), transparent 60%), radial-gradient(600px 700px at 80% 90%, oklch(0.55 0.10 260 / 0.22), transparent 60%)",
-          }}
-        />
-        <div className="flex items-center gap-3">
-          <BrandMark />
-          <span className="font-display text-2xl tracking-tight text-white">CollabOS</span>
-        </div>
-
-        <div className="max-w-lg space-y-6">
-          <p className="text-display text-5xl leading-[1.05] text-white xl:text-6xl">
-            Every pitch,{" "}
-            <span className="italic text-[oklch(0.83_0.13_78)]">extracted.</span>
+    <div className="flex min-h-screen items-center justify-center px-5 py-12">
+      <div className="grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
+        {/* Pitch — wide screens only */}
+        <section className="hidden lg:block">
+          <div className="mb-8 flex items-center gap-3">
+            <BotMark size={44} />
+            <span className="text-2xl font-bold tracking-tight text-white">CollabOS</span>
+          </div>
+          <h1 className="text-display text-5xl text-white">
+            Your AI deal manager,
             <br />
-            Every deal,{" "}
-            <span className="italic text-[oklch(0.83_0.13_78)]">in one place.</span>
+            <span className="text-gradient">always on.</span>
+          </h1>
+          <p className="mt-5 max-w-md text-base leading-relaxed text-[color:var(--color-ink-2)]">
+            Gmail, Instagram DMs and WhatsApp, read by AI, sorted by priority and
+            waiting on one board when you open the app.
           </p>
-          <p className="max-w-md text-[15px] leading-relaxed text-[color:var(--color-ink-3)]">
-            Gmail, Instagram DMs, WhatsApp — read by AI, sorted by priority, and
-            waiting on a single board when you open the app.
-          </p>
-        </div>
+          <ul className="mt-8 space-y-3 text-sm text-[color:var(--color-ink-2)]">
+            {[
+              "Pitches extracted into brand, budget and deadline",
+              "Live Kanban pipeline across every channel",
+              "Voice briefing from your AI talent manager",
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-3">
+                <span className="grid h-6 w-6 place-items-center rounded-full border border-[color:var(--color-line)] bg-white/10">
+                  <svg className="h-3.5 w-3.5 text-[color:var(--color-accent)]" viewBox="0 0 16 16" fill="none" aria-hidden>
+                    <path d="m3.5 8.5 3 3 6-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
 
-        <div className="flex items-center gap-2 text-[11px] tracking-caps text-[color:var(--color-ink-4)]">
-          <span>Made for creators who negotiate their own deals</span>
-        </div>
-      </aside>
-
-      {/* Form pane */}
-      <section className="flex min-h-screen items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
-          {/* Mobile brand — only visible when the editorial pane is hidden */}
-          <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <BrandMark />
-            <span className="font-display text-2xl text-white">CollabOS</span>
+        {/* Glass form card */}
+        <section className="glass mx-auto w-full max-w-md p-8 sm:p-10">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <BotMark size={40} />
+            <span className="text-xl font-bold tracking-tight text-white">CollabOS</span>
           </div>
 
-          <div className="mb-8">
-            <h1 className="font-display text-3xl text-white">Sign in</h1>
-            <p className="mt-1.5 text-sm text-[color:var(--color-ink-3)]">
-              to your CollabOS pipeline
-            </p>
-          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-white">Welcome back</h2>
+          <p className="mt-1.5 text-sm text-[color:var(--color-ink-3)]">Sign in to your pipeline</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
             <label className="block">
-              <span className="mb-1.5 block text-[11px] tracking-caps text-[color:var(--color-ink-3)]">Email</span>
+              <span className="mb-2 block text-xs font-semibold text-[color:var(--color-ink-2)]">Email</span>
               <input
                 id="email"
                 type="email"
@@ -121,12 +114,12 @@ export default function LoginForm() {
             </label>
 
             <label className="block">
-              <span className="mb-1.5 flex items-center justify-between text-[11px] tracking-caps text-[color:var(--color-ink-3)]">
+              <span className="mb-2 flex items-center justify-between text-xs font-semibold text-[color:var(--color-ink-2)]">
                 <span>Password</span>
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="rounded-md px-1.5 py-0.5 text-[10px] text-[color:var(--color-ink-3)] transition-colors hover:text-white"
+                  className="rounded-md px-1.5 py-0.5 text-xs font-medium text-[color:var(--color-accent)] transition-opacity hover:opacity-80"
                   aria-pressed={showPassword}
                 >
                   {showPassword ? "Hide" : "Show"}
@@ -148,7 +141,7 @@ export default function LoginForm() {
             {error && (
               <p
                 role="alert"
-                className="rounded-md border border-[color:var(--color-coral)]/40 bg-[color:var(--color-coral)]/10 px-3 py-2 text-sm text-[color:var(--color-coral)] animate-fade-in"
+                className="animate-fade-in rounded-xl border border-[color:var(--color-coral)]/50 bg-[color:var(--color-coral)]/15 px-3 py-2.5 text-sm text-[color:var(--color-coral)]"
               >
                 {error}
               </p>
@@ -158,11 +151,11 @@ export default function LoginForm() {
               type="submit"
               disabled={submitting || !email || !password}
               data-variant="primary"
-              className="btn w-full !py-3 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn w-full !py-3.5 !text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                   Signing in…
                 </span>
               ) : (
@@ -171,34 +164,11 @@ export default function LoginForm() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-[11px] tracking-caps text-[color:var(--color-ink-4)]">
+          <p className="mt-8 text-center text-xs text-[color:var(--color-ink-4)]">
             Access is provisioned by your workspace owner
           </p>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
-  );
-}
-
-/* Simple monogram: a warm-brass square with an italic serif "C". */
-function BrandMark() {
-  return (
-    <span
-      aria-hidden
-      className="grid h-9 w-9 place-items-center rounded-lg"
-      style={{
-        background:
-          "linear-gradient(180deg, oklch(0.83 0.13 78), oklch(0.68 0.15 62))",
-        boxShadow:
-          "inset 0 1px 0 rgb(255 255 255 / 0.35), 0 6px 18px -6px oklch(0.68 0.15 62 / 0.65)",
-      }}
-    >
-      <span
-        className="font-display italic leading-none"
-        style={{ color: "#1a1000", fontSize: "20px" }}
-      >
-        C
-      </span>
-    </span>
   );
 }

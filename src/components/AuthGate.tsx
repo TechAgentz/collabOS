@@ -70,7 +70,7 @@ export default function AuthGate() {
           className="h-6 w-6 animate-spin rounded-full border-2"
           style={{
             borderColor: "color-mix(in oklab, white 10%, transparent)",
-            borderTopColor: "oklch(0.83 0.13 78)",
+            borderTopColor: "var(--color-accent)",
           }}
         />
       </div>

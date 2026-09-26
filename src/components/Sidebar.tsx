@@ -5,6 +5,7 @@ import { useDeals, type ChannelFilter } from "@/lib/dealsStore";
 import { STAGES, CHANNEL_LABELS, type Channel } from "@/lib/types";
 import { ChannelIcon } from "./DealCard";
 import SettingsModal, { type ChannelAccounts } from "./SettingsModal";
+import { BotMark } from "./BotBackdrop";
 
 const CHANNELS: Channel[] = ["gmail", "instagram", "whatsapp"];
 
@@ -57,17 +58,17 @@ export default function Sidebar({
     <aside className="glass flex flex-col gap-6 p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-1 pt-1">
-        <BrandMark />
-        <span className="font-display text-xl leading-none text-white">CollabOS</span>
+        <BotMark size={34} />
+        <span className="text-lg font-bold leading-none tracking-tight text-white">CollabOS</span>
       </div>
 
       {/* Profile chip */}
       <div className="surface-inset flex items-center gap-3 px-3 py-2.5">
         <div
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-[#1a1000]"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
           style={{
             background:
-              "linear-gradient(180deg, oklch(0.85 0.13 78), oklch(0.68 0.15 62))",
+              "linear-gradient(180deg, var(--color-accent), var(--color-accent-2))",
             boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.35)",
           }}
         >
@@ -94,7 +95,7 @@ export default function Sidebar({
             <span className="text-white">{active}</span> active
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.83_0.13_78)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
             <span className="text-white">{unread}</span> unread
           </span>
         </div>
@@ -250,8 +251,8 @@ function ChannelRow({
               style={{
                 color:
                   status === "active"
-                    ? "oklch(0.78 0.135 155)"
-                    : "oklch(0.44 0.02 260)",
+                    ? "var(--color-mint)"
+                    : "var(--color-ink-4)",
               }}
             >
               {status === "active" ? "● active" : "○ not linked"}
@@ -271,24 +272,3 @@ function ChannelRow({
   );
 }
 
-function BrandMark() {
-  return (
-    <span
-      aria-hidden
-      className="grid h-8 w-8 place-items-center rounded-md"
-      style={{
-        background:
-          "linear-gradient(180deg, oklch(0.85 0.13 78), oklch(0.68 0.15 62))",
-        boxShadow:
-          "inset 0 1px 0 rgb(255 255 255 / 0.35), 0 4px 12px -4px oklch(0.68 0.15 62 / 0.5)",
-      }}
-    >
-      <span
-        className="font-display italic leading-none"
-        style={{ color: "#1a1000", fontSize: "18px" }}
-      >
-        C
-      </span>
-    </span>
-  );
-}

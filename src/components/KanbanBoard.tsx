@@ -66,7 +66,7 @@ export default function KanbanBoard() {
               }}
               className={`surface-quiet flex min-h-[20rem] flex-col p-3 transition-colors ${
                 isDropTarget
-                  ? "!border-[color:var(--color-brass)]/50 !bg-[color-mix(in_oklab,oklch(0.83_0.13_78)_10%,transparent)]"
+                  ? "!border-[color:var(--color-brass)]/50 !bg-[color-mix(in_oklab,var(--color-accent)_10%,transparent)]"
                   : ""
               }`}
             >

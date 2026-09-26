@@ -130,8 +130,8 @@ export default function DealCard({
               <span
                 className="h-1.5 w-1.5 shrink-0 rounded-full"
                 style={{
-                  background: "oklch(0.83 0.13 78)",
-                  boxShadow: "0 0 8px oklch(0.83 0.13 78 / 0.6)",
+                  background: "var(--color-accent)",
+                  boxShadow: "0 0 8px color-mix(in oklab, var(--color-accent) 60%, transparent)",
                 }}
               />
             )}
@@ -159,7 +159,7 @@ export default function DealCard({
       {budget && (
         <p
           className="font-display mt-3 text-[18px] leading-none"
-          style={{ color: "oklch(0.85 0.13 78)" }}
+          style={{ color: "var(--color-accent)" }}
         >
           {budget}
         </p>
