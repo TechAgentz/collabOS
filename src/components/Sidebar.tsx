@@ -55,7 +55,7 @@ export default function Sidebar({
     c === "all" ? deals.length : deals.filter((d) => d.source_channel === c).length;
 
   return (
-    <aside className="glass flex flex-col gap-6 p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+    <aside className="glass flex flex-col gap-6 p-5 lg:h-full lg:overflow-y-auto">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-1 pt-1">
         <BotMark size={34} />

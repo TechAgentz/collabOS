@@ -66,12 +66,19 @@ export default function DashboardShell({
     : undefined;
 
   return (
-    <div className="mx-auto min-h-screen max-w-[1440px] px-4 pb-40 pt-6 sm:px-6 lg:px-8 lg:pt-8">
-      <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-8">
+    // Desktop is an app shell: the page itself never scrolls. The sidebar is
+    // pinned at full height (scrolling internally only if it is taller than
+    // the screen) and only <main> scrolls. Below lg it stacks and the page
+    // scrolls normally.
+    <div className="mx-auto min-h-screen max-w-[1440px] px-4 pb-40 pt-6 sm:px-6 lg:flex lg:h-screen lg:gap-8 lg:overflow-hidden lg:px-8 lg:py-6">
+      <div className="lg:h-full lg:w-[280px] lg:shrink-0">
         <Sidebar email={email} onSignOut={onSignOut} accounts={accounts} />
+      </div>
 
-        <main className="mt-6 space-y-8 lg:mt-0">
-          {/* Top strip: date + search. Sticky on desktop so search never scrolls away. */}
+      {/* Side padding + matching negative margin leave room for card hover
+          shadows, which the scroll container would otherwise clip. */}
+      <main className="mt-6 space-y-8 lg:-mx-2 lg:mt-0 lg:h-full lg:min-w-0 lg:flex-1 lg:overflow-y-auto lg:px-2 lg:pb-40">
+          {/* Top strip: date + search. Sticky within the scrolling pane so search never scrolls away. */}
           <div className="sticky top-0 z-20 -mx-4 flex items-center gap-3 bg-[color-mix(in_oklab,#06090f_78%,transparent)] px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-full lg:border lg:border-[color:var(--color-line)] lg:bg-[color-mix(in_oklab,white_3%,transparent)] lg:px-4 lg:py-2 lg:backdrop-blur-2xl">
             <span className="text-[11px] tracking-caps text-[color:var(--color-ink-3)]">
               {today}
@@ -114,8 +121,7 @@ export default function DashboardShell({
 
           {/* Pipeline board */}
           <KanbanBoard />
-        </main>
-      </div>
+      </main>
 
       {/* Floating overlays */}
       <VoiceAssistant name={firstName} />

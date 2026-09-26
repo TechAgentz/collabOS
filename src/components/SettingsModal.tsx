@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
 export interface ChannelAccounts {
@@ -59,7 +60,10 @@ export default function SettingsModal({
     onClose();
   }
 
-  return (
+  // Portal to <body>: the modal is opened from the glass sidebar, and its
+  // backdrop-filter makes it the containing block for position:fixed, which
+  // would trap the modal inside the sidebar instead of covering the screen.
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="animate-fade-in absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
@@ -126,6 +130,7 @@ export default function SettingsModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
